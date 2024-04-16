@@ -1,3 +1,15 @@
 #    SPDX-FileCopyrightText: 2024 Matheus Pereira Dias <matheuspd07@gmail.com>
 #   
 #    SPDX-License-Identifier: GPL-3.0-or-later
+
+Exercise 1: Bare Metal Hello World
+
+a) 'hw.S' written in AT&T assembly. OK
+b) Implement 'hwasm.c'. OK
+c) Use 'hwasm' to assemble 'hw.S' and produce 'hw.bin'. OK
+d) Same output. OK
+e) The disassemble approximately matches 'hw.S', except in the directives (.fill, .string, .word). OK
+f) Worked in QEMU. OK
+g) Worked in real PC. OK
+h) OK
+i) 'hw.bin' and 'hw2.bin'(compiled by gcc) are the same. Had to hardcode a lot of things. OK
