@@ -21,13 +21,9 @@
  Overview
  ------------------------------
 
- <!-- Delete this comment:
+ Exercise 1: Bare Metal Hello World
+* Assembler and linker in C (hw/hwasm.c)
 
-   * Extend this content with information about your awesome project.
-
-   * See .tools/readme.md for detailed instructions.
-
- -->
 
  Licensing
  -----------------------------
