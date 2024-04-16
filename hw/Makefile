@@ -20,10 +20,10 @@ hwasm : hwasm.c
 	gcc -Wall --ansi hwasm.c -o hwasm
 
 hw2.bin: hw2.o
-	ld -melf_i386 --oformat=binary -Ttext=0x7c00 hw2.o -o h2.bin
+	ld -melf_i386 --oformat=binary -Ttext=0x7c00 hw2.o -o hw2.bin
 
 hw2.o: hw.S
-	as --32 hw.S -o hw.o
+	as --32 hw.S -o hw2.o
 
 
 .PHONY: clean
@@ -34,7 +34,7 @@ clean:
 
 # Create stand-alone distribution
 
-EXPORT_FILES = Makefile README
+EXPORT_FILES = README Makefile
 EXPORT_NEW_FILES = NOTEBOOK
 
 
@@ -357,13 +357,11 @@ stick: $(IMG)
 
 TARNAME=hw
 
-
-
 syseg-export export:
 	@if ! test -f .dist; then\
 	  make do_export;\
 	 else\
-	  echo "This is a distribution pack already. Nothing to be done.";\
+	  echo "This is an exported bundle already. Nothing to be done.";\
 	fi
 
 do_export:
@@ -376,8 +374,10 @@ do_export:
 	for i in $(EXPORT_NEW_FILES); do\
 	  ../../tools/syseg-newfile -c $(TARNAME)/$$i;\
 	done
-	touch $(TARNAME)/.dist
+	make $(TARNAME)/Makefile
+	echo "DOCM4_DIST=yes" > $(TARNAME)/.dist
 	tar zcvf $(TARNAME).tar.gz $(TARNAME)
+
 
 clean-export:
 	rm -f $(TARNAME).tar.gz
@@ -391,7 +391,12 @@ clean-export:
 #
 # These rules are not relevant for the source-code examples in this directory.
 # The are provided to automatically update docm4 files when their respective
-# sources change.
+# sources change. It won't have effect in an exported directory, though.
+
+-include .dist
+
+ifneq (yes,$(DOCM4_DIST))
+
 
 docm4_deps = ../../tools/docm4.m4 ../../tools/bintools.m4
 
@@ -410,6 +415,8 @@ $(docm4_supported_files): % : %.m4 $(docm4_deps)
 updatem4: Makefile
 #	@path=$$(pwd) ; dir=$${path##*/}; make -C .. $$(for i in $(docm4_supported_files); do test -f $$dir/$$i.m4 && echo "$$dir/$$i" ; done)
 	@make $(docm4_supported_files)
+
+endif
 
 # End of update docm4 files.
 

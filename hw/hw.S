@@ -6,8 +6,7 @@
 
 # Exercise 1: Bare Metal Hello World
 
-	.code16                 # Set 16-bit code
-	
+	.code16                 # Set 16-bit code	
 	.global _start	        # Default entry point (for the linker)
 	
 _start:                # Beginning of the program 
