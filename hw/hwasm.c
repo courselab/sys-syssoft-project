@@ -45,7 +45,7 @@ typedef struct Addresses {
 Addresses* createAddresses(const char* label, uint16_t address, int to_resolve) {
     Addresses* newAddresses = (Addresses*) malloc(sizeof(Addresses));
     if (newAddresses == NULL) {
-        printf("Erro de alocação de memória\n");
+        printf("Memory allocation error\n");
         return NULL;
     }
     strcpy(newAddresses->data.label, label);
@@ -91,7 +91,7 @@ void updateAddress(Addresses* head, const char* label, uint16_t newAddress) {
         }
         current = current->next;
     }
-    printf("Rótulo não encontrado.\n");
+    printf("Label not found.\n");
 }
 
 void trim_left(char *str) {
@@ -223,14 +223,14 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
 
         switch (num_args) {
             case 1:
-                /* halt */
+                /* HALT */
                 if(!strcmp(instruction, "hlt")) {
                     printHexBytes(opcode_map[8].code, opcode_map[8].num_bytes_opcode, out_file);
                     (*num_bytes) += opcode_map[8].num_bytes;
                 }
                 break;
             case 2:
-                /* int */
+                /* INT */
                 if(!strcmp(instruction, "int")) {
                     char *ptr;
                     sscanf(arg1, "$0x%s", temp1);
@@ -240,9 +240,9 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                     printHexBytes(t, (len+1)/2, out_file);
                     (*num_bytes) += opcode_map[5].num_bytes;
                 }
-                /* je */
+                /* JE */
                 else if(!strcmp(instruction, "je")) {
-                    /*achar label*/
+                    /* Find Label */
                     uint16_t t = isInList(*add, arg1);
                     uint16_t pos = 0x7c00 + *num_bytes + opcode_map[4].num_bytes;
                     if (t) {
@@ -258,9 +258,9 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                     }
                     (*num_bytes) += opcode_map[4].num_bytes;
                 }
-                /* jmp */
+                /* JMP */
                 else if(!strcmp(instruction, "jmp")) {
-                    /*achar label*/
+                    /* Find Label */
                     uint16_t t = isInList(*add, arg1);
                     uint16_t pos = 0x7c00 + *num_bytes + opcode_map[7].num_bytes;
                     if (t) {
@@ -278,10 +278,10 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                 }                
                 break;
             case 3:
-                /* mov */
+                /* MOV */
                 if(!strcmp(instruction, "mov")) {               
                     sscanf(arg2, "%%%s", temp2);
-                    /*mov ah*/  
+                    /* MOV AH */  
                     if(!strcmp(temp2, "ah")) {
                         char *ptr;     
                         sscanf(arg1, "$0x%s", temp1);
@@ -291,10 +291,10 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                         printHexBytes(t, (len+1)/2, out_file);
                         (*num_bytes) += opcode_map[0].num_bytes;              
                     }
-                    /*mov al ptr*/
+                    /* MOV AL PTR SI */
                     else if(!strcmp(temp2, "al")) {
                         sscanf(arg1, "%[^(](%%%s)", temp2, temp1);
-                        /* encontrar endereco label (temp2) */
+                        /* Find Label (temp2) */
                         uint16_t t = isInList(*add, arg1);
                         if (t) {
                             printHexBytes(opcode_map[1].code, opcode_map[1].num_bytes_opcode, out_file);
@@ -309,7 +309,7 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                         }
                         (*num_bytes) += opcode_map[1].num_bytes;
                     }
-                    /*mov si*/
+                    /* MOV SI */
                     else if(!strcmp(temp2, "si")) {
                         char *ptr;     
                         sscanf(arg1, "$0x%s", temp1);
@@ -320,7 +320,7 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                         (*num_bytes) += opcode_map[2].num_bytes;       
                     }           
                 }
-                /*add si*/
+                /* ADD SI */
                 if(!strcmp(instruction, "add")) {
                     char *ptr;     
                     sscanf(arg1, "$0x%s", temp1);
@@ -330,7 +330,7 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                     printHexBytes(t, (len+1)/2, out_file);
                     (*num_bytes) += opcode_map[6].num_bytes;                
                 }
-                /*cmp*/
+                /* CMP */
                 else if(!strcmp(instruction, "cmp")) {
                     char *ptr;          
                     sscanf(arg1, "$0x%s", temp1);
@@ -342,7 +342,7 @@ void process_line(char* line, FILE* out_file, int *num_bytes, Addresses **add, A
                 }
                 break;
             default:
-                printf("Linha inválida ou não reconhecida.\n");
+                printf("Invalid or unrecognized line.\n");
         }
     }
 }
@@ -380,10 +380,10 @@ int main() {
     while (add_to_resolve != NULL) {
         Addresses* temp = add_to_resolve;
         if(!strcmp(add_to_resolve->data.label, "msg")) {
-            /*fseek*/
+            /* FSEEK */
             uint16_t pos = add_to_resolve->data.to_resolve;
             if (fseek(out_file, pos, SEEK_SET) != 0) {
-                fprintf(stderr, "Erro ao mover o cursor no arquivo.\n");
+                fprintf(stderr, "Error when moving the cursor in the file.\n");
                 fclose(out_file);
                 exit(1);
             }
@@ -392,10 +392,10 @@ int main() {
             printHexBytes(temp, 2, out_file);
         }
         else{
-            /*fseek*/
+            /* FSEEK */
             uint16_t pos = add_to_resolve->data.to_resolve;
             if (fseek(out_file, pos, SEEK_SET) != 0) {
-                fprintf(stderr, "Erro ao mover o cursor no arquivo.\n");
+                fprintf(stderr, "Error when moving the cursor in the file.\n");
                 fclose(out_file);
                 exit(1);
             }
