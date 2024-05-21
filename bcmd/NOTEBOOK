@@ -1,0 +1,13 @@
+#    SPDX-FileCopyrightText: 2024 Matheus Pereira Dias <matheuspd07@gmail.com>
+#   
+#    SPDX-License-Identifier: GPL-3.0-or-later
+
+Exercise 3: Boot Command
+
+a) Changed the max characters to 20 at readln in bios.S
+b) Implemented in assembly the functions strlen and itoa (integer to string) in opt.S
+c) Implemented in C the boot command 'strlen' that takes a string and show the actual string that will be read (max 20 characters) and its length
+
+Managing the registers to do what i wanted was pretty challenging, i don't know if the assembly functions are entirely correct, but it's working at least (It Just Works);
+The limited memory was a lot of trouble;
+Didn't use the utils.c and utils.h files.
