@@ -1,0 +1,93 @@
+#    SPDX-FileCopyrightText: 2024 Matheus Pereira Dias <matheuspd07@gmail.com>
+#   
+#    SPDX-License-Identifier: GPL-3.0-or-later
+
+
+I made a GDB script that solves the challenge (script.gdb):
+- Run the script with `make run`
+- Press enter in the GDB interface to start
+- Input anything when it requires the Access token
+- Then the secret message will be displayed
+
+The entire manual proccess is described bellow:
+
+With the help of a decompiler (like Ghidra for example), we can see the code for the main function as something like this:
+
+```
+  buffer2 = filename[1];
+  printf("Access token: ");
+  __isoc99_scanf(&DAT_0804a02e,resp1);
+  obf(resp1,_key,1);
+  var1 = 0;
+  while ((*(int *)(token + var1 * 4) != 0 &&
+         (i1 = strcmp(*(char **)(token + var1 * 4),resp1), i1 != 0))) {
+    var1 = var1 + 1;
+  }
+  if (*(int *)(token + var1 * 4) == 0) {
+    puts("Denied.");
+    i2 = 1;
+  }
+  else {
+    __stream = fopen(buffer2,"r");
+    if (__stream == (FILE *)0x0) {
+      if (buffer2 == (char *)0x0) {
+        buffer2 = "";
+      }
+      i3 = __errno_location();
+      buffer3 = strerror(*i3);
+      fprintf(stderr,"%s (%s)\n",buffer3,buffer2);
+                    // WARNING: Subroutine does not return
+      exit(1);
+    }
+    while (buffer2 = fgets(resp2,0x100,__stream), buffer2 != (char *)0x0) {
+      obf(resp2,_key,0xffffffff);
+      printf("%s",resp2);
+    }
+    putchar(10);
+    i2 = 0;
+  }
+```
+
+So if the statement `if (*(int *)(token + var1 * 4) == 0)` was 1 instead of 0 and the filename was the file with the obfuscated code (secret.cry), the else statement would be executed and the while loop that deobfuscates the secret and prints it would also be executed.
+
+Using `objdump -d decode` we can find the address of the jump instruction that performs the if statement. In this case, it's the address `0x08049395` that will execute the test with the eax register:
+```
+    0x0804937c <+239>:   call   0x8049040 <strcmp@plt>
+    0x08049381 <+244>:   add    $0x10,%esp
+    0x08049384 <+247>:   test   %eax,%eax
+    0x08049386 <+249>:   jne    0x804934c <main+191>
+    0x08049388 <+251>:   mov    -0x218(%ebp),%eax   
+    0x0804938e <+257>:   mov    0x804c018(,%eax,4),%eax
+--> 0x08049395 <+264>:   test   %eax,%eax
+    0x08049397 <+266>:   jne    0x80493b3 <main+294>
+    0x08049399 <+268>:   sub    $0xc,%esp
+    0x0804939c <+271>:   push   $0x804a031
+    0x080493a1 <+276>:   call   0x80490b0 <puts@plt>
+```
+
+So, if we run the decode file with GDB, put a break at that address and use the command `set $eax=0x1` when it reaches this breakpoint, the Zero Flag will be 0 and the not equal jump will be performed, bypassing the validation and printing the message:
+
+https://drive.google.com/file/d/[CENSORED]
+
+
+The entire proccess can be followed with the commands below (the files decode, secret.cry and libcry.so must be in this directory):
+
+```
+gdb
+(gdb) file decode
+(gdb) set environment FD_LIBRARY_PATH ./
+(gdb) b *0x8049395
+(gdb) run secret.cry
+(gdb) Access token: abcd                # You can input anything here
+
+Breakpoint 1, 0x08049395 in main ()
+(gdb) info registers
+eax            0x0                 0
+...
+
+(gdb) set $eax=0x1
+(gdb) c
+Single stepping until exit from function main,
+which has no line number information.
+https://drive.google.com/file/d/[CENSORED]
+```
