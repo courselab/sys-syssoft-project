@@ -22,8 +22,18 @@
  ------------------------------
 
  Exercise 1: Bare Metal Hello World
-* Assembler and linker in C (hw/hwasm.c)
+ * Assembler and linker in C (hw/hwasm.c)
 
+ Exercise 2: Boot Command
+ * Simple command-line interpreter that fits entirely within the first 512-byte sector of a USB stick.
+ * It is meant to be loaded by the BIOS legacy boot method and execute in x86 real-mode.
+ * Has strlen implemented in it.
+
+ Exercise 3: Decode encrypted message
+ * Script and explanation of how to crack the code and bypass the validation.
+
+ Exercise 4: Quiz
+ * Exercises with 4 simple programs.
 
  Licensing
  -----------------------------
