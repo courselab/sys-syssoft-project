@@ -1,0 +1,195 @@
+#    SPDX-FileCopyrightText: 2024 Matheus Pereira Dias <matheuspd07@gmail.com>
+#   
+#    SPDX-License-Identifier: GPL-3.0-or-later
+
+# 1) p1.c:
+
+The `printf ("Main's ddress: %p", main);` prints the address where the main function is loaded in the memory when the program runs.
+Each time we run the program, the address may change because of ASLR (Address Space Layout Randomization) as a mean to enhance security by randomizing the base address where executable code is loaded, because of dynamic linked libraries as the dynamic linker can load the program or libraries at different addresses in memory or because of another program running in that address already.
+
+# 2) p2.c
+
+Entering the correct password "foo" the access is granted.
+Entering the wrong password "youshallnotpass" the access is granted too. This occurs because of a buffer overflow as there is no checking in the limit of characters read. After the overflow, the variable verified is overwritten by some value different from 0, bypassing the if statement. The flaw is in the scanf function, by not specifying a maximum length to read, allowing buffer overflow vulnerabilities.
+Despite compiling with fstack-protector, no detection occurs likely because the program did not overflow the stack canary in a way that triggered an immediate detection.
+
+Fixing the vulnerability:
+
+```
+#include <stdio.h>
+#include <string.h>
+
+int verify_password(const char *input) {
+    
+    const char *correct_password = "foo";
+
+    fgets(input, sizeof(user_input), stdin);
+    input[strcspn(input, "\n")] = '\0';
+    
+    if (!strcmp(input, correct_password)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int main(void) {
+    char input[20];
+    printf("Enter password: ");
+
+    if (verify_password(input)) {
+        printf("Access granted.\n");
+    } else {
+        printf("Access denied\n");
+        exit(1);
+    }
+    
+    return 0;
+}
+```
+
+# 3) p3.c
+
+## a) 
+
+```
+    8049195:       8b 45 08                mov    0x8(%ebp),%eax    # Moves parameter n (passed by foo) into %eax
+    8049198:       83 c0 01                add    $0x1,%eax         # Adds 1 to n in %eax
+    804919b:       83 ec 0c                sub    $0xc,%esp         # Allocates 12 bytes on the stack
+    804919e:       50                      push   %eax              # Pushes n+1 onto the stack (parameter for bar)
+    804919f:       e8 0b 00 00 00          call   80491af <bar>     # Calls bar with the parameter pushed onto the stack
+```
+
+The calling convention defines how functions pass parameters, return values, and manage the stack during function calls. It standardizes how functions interact at the assembly level within a specific architecture and OS. For the x86, for example, parameters are typically passed on the stack or via registers like %eax, %edx, etc. Return values are often stored in %eax.
+    The ABI include other aspects of binary compatibility between different modules in a program. It ensures that binaries produced by different compilers or for different OS can interact the same way.
+
+## b)
+```
+    804919f:       e8 0b 00 00 00          call   80491af <bar>         # bar returns its value in %eax
+    80491a4:       83 c4 10                add    $0x10,%esp
+    80491a7:       89 45 f4                mov    %eax,-0xc(%ebp)       # the return value of %eax is put in -0xc(%ebp)
+    80491aa:       8b 45 f4                mov    -0xc(%ebp),%eax       # foo retrieves this value from -0xc(%ebp)
+```
+
+This aligns with the ABI and calling convention, where %eax often holds the return value and stack offsets (%ebp adjustments) manage local variables and parameters.
+
+## c)
+```
+    0804918f <foo>:
+    804918f:       55                      push   %ebp              # Save current base pointer
+    8049190:       89 e5                   mov    %esp,%ebp         # Set up new base pointer
+    ...
+    80491a4:       83 c4 10                add    $0x10,%esp        # Adjust stack pointer to clean up arguments after call
+    80491a7:       89 45 f4                mov    %eax,-0xc(%ebp)   # Store return value of bar in local variable a
+    80491aa:       8b 45 f4                mov    -0xc(%ebp),%eax   # Move return value of bar to %eax for function return
+    80491ad:       c9                      leave                    # Restore stack and base pointer
+    80491ae:       c3                      ret                      # Return from foo
+```
+
+`push %ebp`: saves the current base pointer onto the stack. This is part of the function prologue, ensuring that the caller's base pointer is preserved before modifying %ebp. Ensures that the previous function's stack frame remains intact.
+
+`mov %esp,%ebp`: sets %ebp to %esp, establishing a new stack frame for the current function (foo). Establishes a standard stack frame where %ebp is used as a reference to access function parameters and local variables of the function.
+
+`leave`: equal to `mov %ebp, %esp` followed by `pop %ebp`. It restores the stack pointer to the base pointer and pops the previous %ebp value from the stack. Ensures proper stack cleanup before returning from the function, maintaining stack integrity, following the ABI rules on function exit protocol.
+
+## d)
+
+`sub $0x18, %esp` / `sub $0x10, %esp`: allocates bytes on the stack for local variables in the functions. Maintains stack alignment and ensures space for local variable storage, following the ABI guidelines on stack management and variable storage.
+
+In main, the instruction `and $0xfffffff0,%esp` adjusts the stack pointer to align it on a 16-byte boundary. This operation ensures that the stack pointer remains aligned to 16 bytes, which is beneficial for performance on some architectures.
+
+## e)
+```
+    80491aa:       89 45 f4             mov    %eax,-0xc(%ebp)
+```
+
+`movsbl %al,%eax` stands for "move with sign extension from byte to long" in x86 assembly. It copies the byte in %al into %eax, while sign-extending it to fill the upper 24 bits of %eax. This sign extension ensures that the value in eax is interpreted as a signed integer.
+Declaring foo and bar before main provides their prototypes to the compiler, informing it about the existence of these functions, including their return types and parameter lists. The compiler checks if any calls to foo and bar dont match their declared signatures. This ensures type safety and prevents mismatches in function calls. If there are errors in how foo or bar are used, the compiler can catch these errors early during compilation rather than later during linking or runtime.
+
+
+# 4) p4.c
+
+## a) 
+
+All of the 3 programs return 'Foo".
+- `p4-v1`: links all object files directly into the executable `p4-v1`.
+- `p4-v2`: contains all necessary code statically linked from `libp4.a`. It runs independently without needing the shared object at runtime.
+- `p4-v3`: relies on the dynamic library `libp4.so` at runtime. This means `libp4.so` must be present and accessible during execution.
+
+## b)
+
+- `p4-v1`: 15064 bytes. Generally larger in size because it includes all necessary code from `p4.o`, `p4a.o`, and `p4b.o`.
+- `p4-v2`: 15024 bytes. Smaller than `p4-v1` but larger than `p4-v3` because it includes `libp4.a` (statically linked library).
+- `p4-v3`: 14972 bytes. Smallest in size because it dynamically links `libp4.so`, which contains only references to `p4a.o` and `p4b.o`.
+
+## c)
+
+- `p4-v1`: All symbols are listed as they are directly linked into the executable.
+- `p4-v2`: only `foo` and `main` are listed in `p4-v2`. `bar` is not listed because it is statically linked from `libp4.a` and `foo` is present because it is used in `p4-v2`.
+- `p4-v3`: `foo` and `bar` are not listed directly in `p4-v3` but are resolved dynamically from `libp4.so` during runtime.
+
+## d)
+
+Dynamic Libraries (`p4-v3`): Includes an additional NEEDED entry for `libp4.so`, indicating dynamic linking with `libp4.so` along with `libc.so.6`.
+
+Static Library (`p4-v2`): Doesnt include `libp4.so` in the NEEDED entries because `libp4.a` is statically linked.
+
+`p4-v1` and `p4-v2` are similar except for the finalization address (FINI).
+
+## e)
+
+#### 1) Executable program should be installed in other hosts:
+
+Static Libraries:
+
+- Pros:
+    * The executable contains all necessary library code, so it can run on any system without requiring the presence of shared libraries.
+    * Installation is simple as it only involves copying the executable file.
+- Cons:
+    * Executables can be larger because they include all library code.
+    * If the library needs to be updated, each executable must be rebuilt and redistributed.
+
+Dynamic Libraries:
+
+- Pros:
+    * Smaller executables because they rely on shared libraries installed on the system.
+    * Updates to libraries benefit all applications using them.
+- Cons:
+    * Requires the system to have compatible versions of the shared libraries installed.
+
+#### 2) The library is updated:
+
+Static Libraries:
+
+- Pros:
+    * Each application has its version of the library, so updates are controlled per application.
+- Cons:
+    * Updating requires rebuilding and redistributing each application using the library.
+
+Dynamic Libraries:
+
+- Pros:
+    * Updating the shared library affects all applications using it.
+    * Reduces redundancy and ensures consistency across applications.
+- Cons:
+    * Updates may introduce compatibility issues if applications rely on specific library versions.
+    * Ensuring compatibility and managing dependencies can be complex.
+
+#### 3) The library should be used by many different programs running on the same host:
+
+Static Libraries:
+
+- Pros:
+    * Each application has its copy of the library, reducing dependency changes.
+- Cons:
+    * Multiple copies of the library in the system.
+    * Updates require rebuilding and redistributing each application.
+
+Dynamic Libraries:
+
+- Pros:
+    * Shared libraries reduce disk usage and memory by allowing multiple applications to use the same instance.
+    * Ensures all applications benefit from bug fixes and improvements.
+- Cons:
+    * Different applications may require different versions of the library, leading to compatibility issues.
+    * Changes to shared libraries can impact multiple applications simultaneously.
