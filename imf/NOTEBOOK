@@ -3,6 +3,10 @@
 #    SPDX-License-Identifier: GPL-3.0-or-later
 
 
+Solved it in 2 different ways:
+
+1) The GDB hard way:
+
 I made a GDB script that solves the challenge (script.gdb):
 - Run the script with `make run`
 - Press enter in the GDB interface to start
@@ -67,7 +71,7 @@ Using `objdump -d decode` we can find the address of the jump instruction that p
 
 So, if we run the decode file with GDB, put a break at that address and use the command `set $eax=0x1` when it reaches this breakpoint, the Zero Flag will be 0 and the not equal jump will be performed, bypassing the validation and printing the message:
 
-https://drive.google.com/file/d/[CENSORED]
+https://drive.google.com/file/d/1n0w8dFS8zJ7flnAQI75uLkw40IzAVUdW
 
 
 The entire proccess can be followed with the commands below (the files decode, secret.cry and libcry.so must be in this directory):
@@ -89,5 +93,29 @@ eax            0x0                 0
 (gdb) c
 Single stepping until exit from function main,
 which has no line number information.
-https://drive.google.com/file/d/[CENSORED]
+https://drive.google.com/file/d/1n0w8dFS8zJ7flnAQI75uLkw40IzAVUdW
 ```
+
+2) The lib override easier way:
+
+We can easilly notice that to bypass the comparison condition of the access token and acquire the decrypted answer, we need to provide the right token so that the strcmp function will return 0.
+
+So if we make a custom strcmp function and preload it in the code, it will execute our function instead.
+
+That is, when we set LD_PRELOAD, the dynamic linker loads the library specified in LD_PRELOAD before loading other shared libraries. As a result, the implementation of the function in the library specified in LD_PRELOAD is used instead of the original implementation.
+
+We compile our override library with:
+
+`gcc -fPIC -m32 -shared -o liboverride.so liboverride.c`
+
+Then we run the program with:
+
+`LD_LIBRARY_PATH=. LD_PRELOAD=./liboverride.so ./decode secret.cry`
+
+ERROR: ld.so: object './liboverride.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS32): ignored.
+ERROR: ld.so: object './liboverride.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS32): ignored.
+ERROR: ld.so: object './liboverride.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS32): ignored.
+Access token: [anything you want to write]
+https://drive.google.com/file/d/1n0w8dFS8zJ7flnAQI75uLkw40IzAVUdW
+
+And that's it.
