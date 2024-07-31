@@ -7,6 +7,8 @@
 The `printf ("Main's ddress: %p", main);` prints the address where the main function is loaded in the memory when the program runs.
 Each time we run the program, the address may change because of ASLR (Address Space Layout Randomization) as a mean to enhance security by randomizing the base address where executable code is loaded, because of dynamic linked libraries as the dynamic linker can load the program or libraries at different addresses in memory or because of another program running in that address already.
 
+~~~>> 2.5
+
 # 2) p2.c
 
 Entering the correct password "foo" the access is granted.
@@ -47,6 +49,8 @@ int main(void) {
     return 0;
 }
 ```
+
+~~~>> 2.5
 
 # 3) p3.c
 
@@ -106,6 +110,7 @@ In main, the instruction `and $0xfffffff0,%esp` adjusts the stack pointer to ali
 `movsbl %al,%eax` stands for "move with sign extension from byte to long" in x86 assembly. It copies the byte in %al into %eax, while sign-extending it to fill the upper 24 bits of %eax. This sign extension ensures that the value in eax is interpreted as a signed integer.
 Declaring foo and bar before main provides their prototypes to the compiler, informing it about the existence of these functions, including their return types and parameter lists. The compiler checks if any calls to foo and bar dont match their declared signatures. This ensures type safety and prevents mismatches in function calls. If there are errors in how foo or bar are used, the compiler can catch these errors early during compilation rather than later during linking or runtime.
 
+~~~>> 2.5
 
 # 4) p4.c
 
@@ -193,3 +198,5 @@ Dynamic Libraries:
 - Cons:
     * Different applications may require different versions of the library, leading to compatibility issues.
     * Changes to shared libraries can impact multiple applications simultaneously.
+
+~~~>> 2.5
